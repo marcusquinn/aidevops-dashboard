@@ -1,0 +1,36 @@
+{
+  "version": "2.130.0",
+  "initialized": "2026-02-25T21:12:23Z",
+  "features": {
+    "planning": true,
+    "git_workflow": true,
+    "code_quality": true,
+    "time_tracking": true,
+    "database": true,
+    "beads": true
+  },
+  "time_tracking": {
+    "enabled": true,
+    "prompt_on_commit": true,
+    "auto_record_branch_start": true
+  },
+  "database": {
+    "enabled": true,
+    "schema_path": "schemas",
+    "migrations_path": "migrations",
+    "seeds_path": "seeds",
+    "auto_generate_migration": true
+  },
+    "beads": {
+      "enabled": true,
+      "sync_on_commit": false,
+      "auto_ready_check": true
+    },
+    "sops": {
+      "enabled": false,
+      "backend": "age",
+      "patterns": ["*.secret.yaml", "*.secret.json", "configs/*.enc.json", "configs/*.enc.yaml"]
+    }
+  },
+  "plugins": []
+}
