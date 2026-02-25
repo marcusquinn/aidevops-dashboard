@@ -50,7 +50,10 @@ function extractIp(req: Request): string {
 }
 
 function isLocalhost(ip: string): boolean {
-  return ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip === "localhost";
+  if (ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip === "localhost") return true;
+  // Docker bridge networks (Traefik container → host) are local infrastructure
+  if (ip.startsWith("172.") || ip.startsWith("192.168.") || ip.startsWith("::ffff:172.") || ip.startsWith("::ffff:192.168.")) return true;
+  return false;
 }
 
 // Public paths that skip auth entirely
