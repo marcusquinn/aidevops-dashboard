@@ -7,8 +7,13 @@ export interface AuthResult {
   method: "localhost" | "tailscale" | "token" | "none";
 }
 
+/** Bun server interface — only the requestIP method we need */
+interface BunServer {
+  requestIP?: (req: Request) => { address: string } | null;
+}
+
 export async function authenticate(req: Request, remoteIp?: string): Promise<AuthResult> {
-  const ip = remoteIp ?? extractIp(req);
+  const ip = remoteIp ?? "unknown";
 
   // Tier 1: Localhost bypass
   if (config.localhostBypass && isLocalhost(ip)) {
@@ -39,14 +44,36 @@ export async function authenticate(req: Request, remoteIp?: string): Promise<Aut
   return { authenticated: false, user: null, method: "none" };
 }
 
-function extractIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+/**
+ * Extract the real client IP address.
+ *
+ * Security: X-Forwarded-For and X-Real-IP are trivially spoofable by any client.
+ * They are ONLY trusted when config.trustProxy is true (TRUST_PROXY=true), meaning
+ * the server is behind a reverse proxy (Tailscale Serve, Traefik, nginx) that
+ * overwrites these headers with the actual client IP.
+ *
+ * When trustProxy is false (default), we use Bun's native requestIP() which reads
+ * the TCP socket address — this cannot be spoofed.
+ */
+export function extractClientIp(req: Request, server: BunServer): string {
+  if (config.trustProxy) {
+    // Trusted proxy mode: proxy overwrites forwarded headers with real client IP
+    const forwarded = req.headers.get("x-forwarded-for");
+    if (forwarded) return forwarded.split(",")[0].trim();
 
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp;
+    const realIp = req.headers.get("x-real-ip");
+    if (realIp) return realIp;
+  }
 
-  return "127.0.0.1";
+  // Direct mode (default): use TCP socket address — cannot be spoofed
+  try {
+    const ip = server.requestIP?.(req);
+    if (ip?.address) return ip.address;
+  } catch {
+    // requestIP not available (e.g. in tests)
+  }
+
+  return "unknown";
 }
 
 function isLocalhost(ip: string): boolean {

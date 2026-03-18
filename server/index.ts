@@ -35,7 +35,7 @@ import { startFileWatchers } from "./watchers/file-watcher";
 import { startCacheCleanup } from "./cache/store";
 import { logger } from "./health/logger";
 import { apiError } from "./routes/_helpers";
-import { authMiddleware } from "./middleware/auth";
+import { authMiddleware, extractClientIp } from "./middleware/auth";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { securityHeaders, handlePreflight } from "./middleware/security";
 
@@ -122,32 +122,13 @@ const ROUTES: Record<string, (req: Request) => Promise<Response>> = {
   "/api/audit": handleAudit,
 };
 
-function extractRemoteIp(req: Request, server: { requestIP?: (req: Request) => { address: string } | null }): string {
-  // Prefer proxy headers (Tailscale Serve sets X-Forwarded-For)
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-
-  const realIp = req.headers.get("x-real-ip");
-  if (realIp) return realIp;
-
-  // Fall back to Bun's native requestIP (direct TCP connection)
-  try {
-    const ip = server.requestIP?.(req);
-    if (ip?.address) return ip.address;
-  } catch {
-    // Not available
-  }
-
-  return "127.0.0.1";
-}
-
 const server = Bun.serve({
   port: config.port,
   hostname: "0.0.0.0", // Accept connections from Tailscale, not just localhost
 
   async fetch(req, srv) {
     const url = new URL(req.url);
-    const remoteIp = extractRemoteIp(req, srv);
+    const remoteIp = extractClientIp(req, srv);
 
     // CORS preflight — handle before auth
     const preflight = handlePreflight(req);
@@ -242,6 +223,7 @@ logger.info("AiDevOps Dashboard Server started", {
   routes: Object.keys(ROUTES).length + 1, // +1 for /api/health/ping
   auth: authMode,
   localhostBypass: config.localhostBypass,
+  trustProxy: config.trustProxy,
   readRateLimit: config.readRateLimit,
   github: (await hasSecret("GITHUB_TOKEN")) ? "configured" : "not configured",
   vps: config.enableVPS && config.vpsHost ? config.vpsHost : "disabled",
@@ -256,5 +238,5 @@ console.log(`
   HTTP:      http://0.0.0.0:${server.port}
   WebSocket: ws://0.0.0.0:${server.port}/ws
   Routes:    ${Object.keys(ROUTES).length} endpoints + /api/health/ping
-  Auth:      ${authMode} (localhost bypass: ${config.localhostBypass})
+  Auth:      ${authMode} (localhost bypass: ${config.localhostBypass}, trust proxy: ${config.trustProxy})
 `);

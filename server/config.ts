@@ -58,6 +58,10 @@ export const config = {
   // Auth (Phase 4)
   localhostBypass: process.env.DASHBOARD_LOCALHOST_BYPASS !== "false",
   allowedTailscaleUsers: (process.env.DASHBOARD_ALLOWED_USERS ?? "").split(",").filter(Boolean),
+  // Only trust X-Forwarded-For / X-Real-IP when behind a known proxy (e.g. Tailscale Serve, Traefik).
+  // When false (default), uses Bun's native requestIP() for localhost detection — prevents
+  // remote clients from spoofing 127.0.0.1 via headers to bypass auth.
+  trustProxy: process.env.TRUST_PROXY === "true",
 
   // Rate limiting
   readRateLimit: Number(process.env.DASHBOARD_READ_RATE_LIMIT ?? 100),

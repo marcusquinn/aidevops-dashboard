@@ -150,9 +150,26 @@ Rate limits: 100 reads/min, 30 writes/min per user.
 
 Three tiers, checked in order:
 
-1. **Localhost bypass** — requests from `127.0.0.1` / `::1` are trusted
+1. **Localhost bypass** — requests from `127.0.0.1` / `::1` are trusted (uses TCP socket address, not headers)
 2. **Tailscale identity** — `Tailscale-User-Login` header from Tailscale Serve
 3. **Bearer token** — `Authorization: Bearer <token>` for API access
+
+### Proxy Trust (`TRUST_PROXY`)
+
+By default, `TRUST_PROXY=false` — the server uses Bun's native `requestIP()` to read the TCP socket address for localhost detection. This **cannot be spoofed** by clients sending fake `X-Forwarded-For` or `X-Real-IP` headers.
+
+Set `TRUST_PROXY=true` **only** when running behind a reverse proxy that overwrites forwarded headers with the real client IP:
+
+| Deployment | `TRUST_PROXY` | Why |
+|------------|---------------|-----|
+| Direct (localhost dev) | `false` (default) | No proxy — socket IP is accurate |
+| Tailscale Serve | `true` | Tailscale Serve sets `X-Forwarded-For` to the Tailscale peer IP |
+| Traefik / nginx | `true` | Proxy overwrites forwarded headers |
+| Public internet (no proxy) | `false` | Headers are client-controlled and spoofable |
+
+### Tailscale Serve Header Security
+
+When using Tailscale Serve as a reverse proxy, it sets identity headers (`Tailscale-User-Login`, `Tailscale-User-Name`) and `X-Forwarded-For`. Tailscale Serve **strips** any client-supplied `Tailscale-User-*` headers before forwarding, preventing identity spoofing. However, ensure your Tailscale Serve configuration does not expose the backend port directly — only the Tailscale Serve endpoint should be reachable from the tailnet.
 
 ## Dark Theme
 
