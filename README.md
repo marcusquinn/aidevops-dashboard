@@ -1,5 +1,13 @@
 # AiDevOps Command Center
 
+> [!IMPORTANT]
+> **Archived — no longer maintained.** This experimental dashboard is superseded by
+> **aidevops.app**, which is developed inside the main
+> [aidevops](https://github.com/marcusquinn/aidevops) repository (`packages/gui-*`).
+> Install it on macOS with `aidevops setup --scope gui-desktop`. Current aidevops
+> setup also removes leftover dashboard LaunchAgent/systemd units.
+> Please open issues and pull requests on the aidevops repository instead.
+
 A browser-based operational dashboard for the [aidevops](https://github.com/marcusquinn/aidevops) framework. Real-time visibility into projects, infrastructure health, AI agent activity, task management, token consumption, and human action queues — plus write-back operations for tasks, PRs, agents, and settings.
 
 Built entirely by Claude Opus 4.6 via Claude Code. Human reviews and approves.
